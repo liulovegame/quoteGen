@@ -144,21 +144,41 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             });
         }
 
-        // 发送请求
-        const response = await fetch(`https://${VIN_CONFIG.host}${VIN_CONFIG.path}?vin=${vin}`, {
-            method: VIN_CONFIG.method,
-            headers: {
-                Authorization: `APPCODE ${VIN_CONFIG.appcode}`,
-                Accept: "application/json",
-            },
-        });
-
-        if (!response.ok) {
-            throw new Error(`VIN API error: ${response.statusText}`);
-        }
-
-        const data = await response.json();
-        const result = data.showapi_res_body;
+        const result = {
+            assembly_factory: "",
+            sale_name: "1.6 手自一体 时尚版",
+            remark: "",
+            engine_type: "BWH",
+            effluent_standard: "国4",
+            brand_name: "大众2",
+            model_name: "宝来2",
+            car_type: "轿车",
+            ret_code: 0,
+            vin: "lfv2a2150a3043256",
+            power: "74",
+            year: "2012",
+            jet_type: "",
+            made_month: "10",
+            transmission_type: "手自一体变速器(AMT)",
+            fuel_Type: "汽油",
+            cylinder_number: "4",
+            drive_style: "前轮驱动",
+            car_line: "宝来",
+            fuel_num: "93#",
+            guiding_price: (Math.random() * 100).toFixed(2),
+            made_year: "2012",
+            output_volume: (Math.random() * 10).toFixed(2),
+            stop_year: "2012",
+            air_bag: "",
+            cylinder_form: "",
+            seat_num: "5",
+            vehicle_level: "紧凑型车",
+            door_num: "四门",
+            car_body: "三厢",
+            manufacturer: "一汽大众",
+            gears_num: "6",
+            car_weight: "",
+        };
 
         // 存入缓存
         setToCache(vin, result);
