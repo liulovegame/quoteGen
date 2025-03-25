@@ -24,7 +24,8 @@ export interface IFormData {
         scratch?: { limit: string; fee: string }; // 车身划痕损失服务
         water?: { limit: string; fee: string }; // 发动机涉水损失服务
         natural?: { limit: string; fee: string }; // 自然损失服务
-    };
+        medical?: { limit: string; fee: string }; // 医保外用药责任服务
+    }
     claimCount: string; // 出险次数
     discount: string; // 折扣
     actualFee: string; // 实收服务费
@@ -47,7 +48,7 @@ export interface IFormData {
         third_party: boolean; // 第三者责任服务
         theft: boolean; // 车上人员责任服务（驾驶员）
         driver: boolean; // 车上人员责任服务（乘客）
-        passenger: boolean; // 医保外用药责任服务
+        medical: boolean; // 医保外用药责任服务
         glass: boolean; // 全车盗抢服务
         scratch: boolean; // 车身划痕损失服务
         water: boolean; // 外部电网故障损失服务
@@ -58,4 +59,5 @@ export interface IFormData {
     driverLiabilityAmount: number; // 车上人员责任服务（驾驶员） 保额
     passengerLiabilityAmount: number; // 车上人员责任服务（乘客） 保额
     thirdPartyLiabilityAmount: number; // 第三者责任服务 保额
+    damageFee: number; // 车损费率
 }

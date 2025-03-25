@@ -33,12 +33,11 @@ const calculatePassengerService = (amount: number = 0, passengerCapacity: number
 const VehicleInfo: React.FC = () => {
     const form = Form.useFormInstance();
     const [typeOptions, setTypeOptions] = useState<{ label: string; value: string }[]>([]);
-    const [subTypeOptions, setSubTypeOptions] = useState<{ label: string; value: string }[]>([]);
 
     // 查询服务数据
     const queryServiceData = async (nature: string, type: string) => {
         try {
-            const currentFormData = form.getFieldsValue(true);
+            const currentFormData = form.getFieldsValue(true) as IFormData;
             const vehicle = currentFormData.vehicle || {};
 
             // 查询车损服务
@@ -98,9 +97,22 @@ const VehicleInfo: React.FC = () => {
             });
             const passengerData = await passengerResponse.json();
 
+            // 查询医保外用药责任服务
+            const medicalResponse = await fetch("/api/teable/medical", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    amount: currentFormData.nonMedicalInsuranceDrugAmount,
+                }),
+            });
+            const medicalData = await medicalResponse.json();
+
             // 更新表单数据
             const currentServices = form.getFieldValue("services") || {};
             const depreciationRate = damageData.data?.[0]?.depreciationRate || 0;
+            // 车损服务费率
             const feeRate = damageData.data?.[0]?.fee || 0;
 
             // 计算各项服务的限额和费用
@@ -118,7 +130,7 @@ const VehicleInfo: React.FC = () => {
             );
 
             // 先更新折旧率
-            form.setFieldValue(["vehicle", "depreciationRate"], depreciationRate);
+            form.setFieldValue(["vehicle", "depreciationRate"], depreciationRate);;
 
             // 再更新服务数据
             const services: IFormData["services"] = {
@@ -143,6 +155,11 @@ const VehicleInfo: React.FC = () => {
                     limit: passenger.limit,
                     fee: passenger.fee,
                 },
+                // 医保外用药责任服务
+                medical: {
+                    limit: currentFormData.nonMedicalInsuranceDrugAmount || 0,
+                    fee: medicalData.data?.[0]?.fee || 0,
+                },
             };
 
             form.setFieldValue("services", services);
@@ -163,6 +180,7 @@ const VehicleInfo: React.FC = () => {
                 totalStandardFee,
                 actualFee,
                 discount,
+                damageFee: feeRate
             });
         } catch (error) {
             console.error("查询服务数据失败:", error);
@@ -178,24 +196,13 @@ const VehicleInfo: React.FC = () => {
             vehicle: {
                 ...form.getFieldValue("vehicle"),
                 type: undefined,
-                subType: undefined,
             },
         });
     };
 
     // 处理车辆种类变化
     const handleTypeChange = (value: string) => {
-        // 根据选择的车辆种类更新子类选项
         const nature = form.getFieldValue(["vehicle", "nature"]);
-        const selectedNature = vehicleTypes.find((item) => item.value === nature);
-        const selectedType = selectedNature?.children.find((item) => item.value === value);
-        setSubTypeOptions(selectedType?.children || []);
-        form.setFieldsValue({
-            vehicle: {
-                ...form.getFieldValue("vehicle"),
-                subType: undefined,
-            },
-        });
 
         // 如果车辆性质和种类都有值，查询服务数据
         if (nature && value) {
@@ -206,30 +213,9 @@ const VehicleInfo: React.FC = () => {
     return (
         <div className="bg-white p-4 rounded-lg mb-6">
             <h3 className="text-lg font-medium mb-6">车辆信息</h3>
-            <div className="[&_.ant-form-item-label]:!w-20 [&_.ant-form-item]:!mb-5">
-                <Form.Item 
-                    label="商业到期" 
-                    name="commercialInsuranceExpiryDate"
-                    rules={[{ required: true, message: "请选择商业到期日期" }]}
-                >
-                    <DatePicker placeholder="选择日期" className="!w-full" />
-                </Form.Item>
-
-                <Form.Item 
-                    label="出险次数" 
-                    name="claimCount"
-                    rules={[{ required: true, message: "请输入出险次数" }]}
-                >
-                    <InputNumber
-                        className="!w-full"
-                        min={0}
-                        controls={false}
-                        suffix={<span className="ml-2 text-gray-500">次</span>}
-                    />
-                </Form.Item>
-
-                <Form.Item 
-                    label="车辆性质" 
+            <div className="[&_.ant-form-item-label]:!w-20 [&_.ant-form-item]:!mb-5 [&_.ant-form-item-required]:before:!content-['']">
+                <Form.Item
+                    label="车辆性质"
                     name={["vehicle", "nature"]}
                     rules={[{ required: true, message: "请选择车辆性质" }]}
                 >
@@ -237,8 +223,8 @@ const VehicleInfo: React.FC = () => {
                 </Form.Item>
 
                 {form.getFieldValue(["vehicle", "nature"]) && (
-                    <Form.Item 
-                        label="车辆种类" 
+                    <Form.Item
+                        label="车辆种类"
                         name={["vehicle", "type"]}
                         rules={[{ required: true, message: "请选择车辆种类" }]}
                     >
@@ -246,11 +232,22 @@ const VehicleInfo: React.FC = () => {
                     </Form.Item>
                 )}
 
-                {form.getFieldValue(["vehicle", "type"]) && (
-                    <Form.Item label="车辆子类" name={["vehicle", "subType"]}>
-                        <Select placeholder="选择车辆子类" options={subTypeOptions} />
-                    </Form.Item>
-                )}
+                <Form.Item
+                    label="商业到期"
+                    name="commercialInsuranceExpiryDate"
+                    rules={[{ required: true, message: "请选择商业到期日期" }]}
+                >
+                    <DatePicker placeholder="选择日期" className="!w-full" />
+                </Form.Item>
+
+                <Form.Item label="出险次数" name="claimCount" rules={[{ required: true, message: "请输入出险次数" }]}>
+                    <InputNumber
+                        className="!w-full"
+                        min={0}
+                        controls={false}
+                        suffix={<span className="ml-2 text-gray-500">次</span>}
+                    />
+                </Form.Item>
 
                 <Form.Item label="使用月数" name={["vehicle", "usageMonths"]}>
                     <InputNumber

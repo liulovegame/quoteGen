@@ -29,6 +29,11 @@ export const vehicleTypes: VehicleType[] = [
                 value: "十吨以上货车",
                 children: [],
             },
+            {
+                label: "挂车",
+                value: "挂车",
+                children: [],
+            },
         ],
     },
     {
@@ -53,6 +58,11 @@ export const vehicleTypes: VehicleType[] = [
             {
                 label: "十吨以上货车",
                 value: "十吨以上货车",
+                children: [],
+            },
+            {
+                label: "挂车",
+                value: "挂车",
                 children: [],
             },
         ],
@@ -97,17 +107,6 @@ export const vehicleTypes: VehicleType[] = [
             {
                 label: "特种车二",
                 value: "特种车二",
-                children: [],
-            },
-        ],
-    },
-    {
-        label: "营业货车/非营业货车(挂车)",
-        value: "营业货车/非营业货车(挂车)",
-        children: [
-            {
-                label: "挂车",
-                value: "挂车",
                 children: [],
             },
         ],

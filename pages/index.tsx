@@ -12,7 +12,7 @@ import { IFormData } from "@/types/formData";
 import dayjs from "dayjs";
 import ServiceFeeTable from "@/components/ServiceFeeTable";
 import SummaryTable from "@/components/SummaryTable";
-import CompulsoryTable from "@/components/CompulsoryTable";
+// import CompulsoryTable from "@/components/CompulsoryTable";
 const { Header, Content } = Layout;
 
 export default function Home() {
@@ -62,6 +62,25 @@ export default function Home() {
         // 转换日期字符串为 dayjs 对象
         const formattedData = {
             ...data,
+            services: {
+                damage: { limit: "", fee: "" },
+                driver: { limit: "", fee: "" },
+                // 第三者责任服务
+                third_party: {
+                    limit: data.thirdPartyLiabilityAmount?.toString() || "",
+                    fee: "",
+                },
+                // 车上人员责任服务（驾驶员）
+                theft: {
+                    limit: data.driverLiabilityAmount?.toString() || "",
+                    fee: "",
+                },
+                // 医保外用药责任服务
+                medical: {
+                    limit: data.nonMedicalInsuranceDrugAmount?.toString() || "",
+                    fee: "",
+                },
+            },
             firstRegistrationDate: data.firstRegistrationDate ? dayjs(data.firstRegistrationDate) : undefined,
             commercialInsuranceExpiryDate: data.commercialInsuranceExpiryDate
                 ? dayjs(data.commercialInsuranceExpiryDate)
@@ -91,9 +110,6 @@ export default function Home() {
                     // formattedData.vehicleModel = `${vinData.brand_name}${vinData.model_name}${vinData.sale_name}`; // 厂牌型号
                     formattedData.vehicle = {
                         ...formattedData.vehicle,
-                        // nature: "家庭自用汽车", // 默认设置为家庭自用汽车
-                        // type: "客车", // 默认设置为客车
-                        // subType: vinData.seat_num <= 5 ? "2-5座" : "6座以上",
                         usageMonths: data.firstRegistrationDate
                             ? Math.round(dayjs().diff(dayjs(data.firstRegistrationDate), "month", true))
                             : 0, // 使用月数，四舍五入
@@ -135,7 +151,7 @@ export default function Home() {
                 third_party: false,
                 theft: false,
                 driver: false,
-                passenger: false,
+                medical: false,
                 glass: false,
                 scratch: false,
                 water: false,
@@ -215,10 +231,10 @@ export default function Home() {
                             <div className="mt-6">
                                 <ServiceFeeTable dataSource={selectedServices} />
                                 <SummaryTable />
-                                <CompulsoryTable />
+                                {/* <CompulsoryTable /> */}
                             </div>
-                            <div className="mt-3 text-sm text-red-500">*如车辆超出服务期则需验车</div>
-                            <div className="text-sm text-red-500">*此报价单仅供参考,实际服务费以出单为准</div>
+                            {/* <div className="mt-3 text-sm text-red-500">*如车辆超出服务期则需验车</div>
+                            <div className="text-sm text-red-500">*此报价单仅供参考,实际服务费以出单为准</div> */}
                         </div>
 
                         {/* 右侧栏  */}

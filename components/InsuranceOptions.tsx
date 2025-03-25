@@ -1,11 +1,11 @@
-import { Checkbox, Form } from "antd";
+import { Checkbox, Form, Input } from "antd";
 
 export const INSURANCE_SERVICES = [
     { id: "damage", label: "机动车损失服务" },
     { id: "third_party", label: "第三者责任服务" },
     { id: "theft", label: "车上人员责任服务（驾驶员）" },
     { id: "driver", label: "车上人员责任服务（乘客）" },
-    { id: "passenger", label: "医保外用药责任服务" },
+    { id: "medical", label: "医保外用药责任服务" },
     { id: "glass", label: "全车盗抢服务" },
     { id: "scratch", label: "车身划痕损失服务" },
     { id: "water", label: "外部电网故障损失服务" },
@@ -37,10 +37,17 @@ const InsuranceOptions: React.FC<InsuranceOptionsProps> = ({ onServiceChange }) 
         <div className="bg-white p-4 rounded-lg">
             <h3 className="text-lg font-medium mb-6">保险服务范围</h3>
             {INSURANCE_SERVICES.map((item) => (
-                <div className="mb-2" key={item.id}>
+                <div className="mb-2 flex items-center justify-between" key={item.id}>
                     <Form.Item name={["insurance", item.id]} valuePropName="checked" noStyle>
                         <Checkbox onChange={handleCheckboxChange}>{item.label}</Checkbox>
                     </Form.Item>
+                    {item.id === "damage" && (
+                        <div className="flex-1 text-xs">
+                            <Form.Item name="damageFee" noStyle>
+                                <Input prefix="费率:" variant="borderless" suffix="%" disabled />
+                            </Form.Item>
+                        </div>
+                    )}
                 </div>
             ))}
         </div>

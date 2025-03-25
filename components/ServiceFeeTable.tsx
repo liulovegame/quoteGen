@@ -1,4 +1,4 @@
-import { Table, Form, Input } from "antd";
+import { Table, Form, Input, Space } from "antd";
 
 interface ServiceFeeTableProps {
     dataSource: Array<{
@@ -9,6 +9,7 @@ interface ServiceFeeTableProps {
 
 const ServiceFeeTable: React.FC<ServiceFeeTableProps> = ({ dataSource }) => {
     const form = Form.useFormInstance();
+    const passengerCapacity = Form.useWatch("approvedPassengerCapacity", form);
     return (
         <Table
             size="small"
@@ -19,8 +20,8 @@ const ServiceFeeTable: React.FC<ServiceFeeTableProps> = ({ dataSource }) => {
                     dataIndex: "name",
                     width: "40%",
                     onCell: () => ({
-                        className: "text-gray-700"
-                    })
+                        className: "text-gray-700",
+                    }),
                 },
                 {
                     title: "服务限额（元）",
@@ -28,13 +29,14 @@ const ServiceFeeTable: React.FC<ServiceFeeTableProps> = ({ dataSource }) => {
                     width: "30%",
                     align: "center",
                     render: (_, record) => (
-                        <Form.Item noStyle name={["services", record.key, "limit"]}>
-                            <Input
-                                placeholder="请输入"
-                                variant="borderless"
-                                className="text-center"
-                            />
-                        </Form.Item>
+                        <Space.Compact className="items-center">
+                            <Form.Item noStyle name={["services", record.key, "limit"]}>
+                                <Input placeholder="请输入" variant="borderless" className="text-center" />
+                            </Form.Item>
+                            {record.key === "driver" && passengerCapacity && (
+                                <span className="w-20">*{passengerCapacity - 1}座</span>
+                            )}
+                        </Space.Compact>
                     ),
                 },
                 {
@@ -44,11 +46,7 @@ const ServiceFeeTable: React.FC<ServiceFeeTableProps> = ({ dataSource }) => {
                     width: "30%",
                     render: (_, record) => (
                         <Form.Item noStyle name={["services", record.key, "fee"]}>
-                            <Input
-                                placeholder="请输入"
-                                variant="borderless"
-                                className="text-center"
-                            />
+                            <Input placeholder="请输入" variant="borderless" className="text-center" />
                         </Form.Item>
                     ),
                 },
@@ -60,4 +58,4 @@ const ServiceFeeTable: React.FC<ServiceFeeTableProps> = ({ dataSource }) => {
     );
 };
 
-export default ServiceFeeTable; 
+export default ServiceFeeTable;
