@@ -18,7 +18,9 @@ const theme: ThemeConfig = {
       boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)',
     },
     Table: {
-      headerBg: '#fafafa',
+      headerBg: 'transparent',
+      borderColor: '#070000',
+      headerBorderRadius: 0
     },
   },
 };

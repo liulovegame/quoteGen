@@ -92,7 +92,8 @@ const VehicleInfo: React.FC = () => {
                     category: "乘客统筹",
                     nature,
                     type,
-                    amount: currentFormData.passengerLiabilityAmount,
+                    // @TODO 乘客统筹服务限额 取驾驶员的字段
+                    amount: currentFormData.driverLiabilityAmount,
                 }),
             });
             const passengerData = await passengerResponse.json();
@@ -123,8 +124,9 @@ const VehicleInfo: React.FC = () => {
                 feeRate
             );
 
+            // @TODO 乘客统筹服务限额 取驾驶员的字段
             const passenger = calculatePassengerService(
-                currentFormData.passengerLiabilityAmount,
+                currentFormData.driverLiabilityAmount,
                 currentFormData.approvedPassengerCapacity,
                 passengerData.data?.[0]?.fee
             );
@@ -213,7 +215,7 @@ const VehicleInfo: React.FC = () => {
     return (
         <div className="bg-white p-4 rounded-lg mb-6">
             <h3 className="text-lg font-medium mb-6">车辆信息</h3>
-            <div className="[&_.ant-form-item-label]:!w-20 [&_.ant-form-item]:!mb-5 [&_.ant-form-item-required]:before:!content-['']">
+            <div className="[&_.ant-form-item-label]:!w-20 [&_.ant-form-item]:!mb-5">
                 <Form.Item
                     label="车辆性质"
                     name={["vehicle", "nature"]}
@@ -236,11 +238,17 @@ const VehicleInfo: React.FC = () => {
                     label="商业到期"
                     name="commercialInsuranceExpiryDate"
                     rules={[{ required: true, message: "请选择商业到期日期" }]}
+                    required={false}
                 >
                     <DatePicker placeholder="选择日期" className="!w-full" />
                 </Form.Item>
 
-                <Form.Item label="出险次数" name="claimCount" rules={[{ required: true, message: "请输入出险次数" }]}>
+                <Form.Item 
+                    label="出险次数" 
+                    name="claimCount" 
+                    rules={[{ required: true, message: "请输入出险次数" }]}
+                    required={false}
+                >
                     <InputNumber
                         className="!w-full"
                         min={0}

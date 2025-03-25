@@ -1,5 +1,6 @@
 import { Form, Input, DatePicker, Table, Space } from "antd";
 import type { ColumnsType } from "antd/es/table";
+import dayjs from "dayjs";
 
 const QuoteForm: React.FC = () => {
     const renderInput = (placeholder: string, required: boolean = true) => (
@@ -18,20 +19,27 @@ const QuoteForm: React.FC = () => {
             title: "被服务人名称",
             dataIndex: "label1",
             width: "20%",
-            className: "bg-gray-50",
             onCell: (record) => ({
-                colSpan: record.key === "6" ? 1 : undefined,
+                colSpan: record.key === "title" ? 4 : record.key === "6" ? 1 : undefined,
             }),
-            render: (text) => text,
+            render: (text, record) => {
+                if (record.key === "title") {
+                    return `尊敬的用户，您于${dayjs().format("YYYY-MM-DD")}日服务方案如下：`;
+                }
+                return text;
+            },
         },
         {
             title: "",
             dataIndex: "input1",
             width: "30%",
             onCell: (record) => ({
-                colSpan: record.key === "6" ? 3 : undefined,
+                colSpan: record.key === "title" ? 0 : record.key === "6" ? 3 : undefined,
             }),
             render: (_, record) => {
+                if (record.key === "title") {
+                    return null;
+                }
                 if (record.key === "6") {
                     return (
                         <div>
@@ -40,7 +48,7 @@ const QuoteForm: React.FC = () => {
                                 noStyle
                                 rules={[{ required: true, message: "请选择起始日期" }]}
                             >
-                                <DatePicker placeholder="起始日期" variant="borderless" />
+                                <DatePicker placeholder="起始日期" variant="borderless" suffixIcon={null} />
                             </Form.Item>
                             <span>始至</span>
                             <Form.Item
@@ -48,7 +56,7 @@ const QuoteForm: React.FC = () => {
                                 noStyle
                                 rules={[{ required: true, message: "请选择终止日期" }]}
                             >
-                                <DatePicker placeholder="终止日期" variant="borderless" />
+                                <DatePicker placeholder="终止日期" variant="borderless" suffixIcon={null} />
                             </Form.Item>
                             <span>止</span>
                         </div>
@@ -56,7 +64,11 @@ const QuoteForm: React.FC = () => {
                 }
                 return (
                     <Space.Compact className="items-center">
-                        <Form.Item noStyle name={record.field1} rules={[{ required: true, message: `请输入${record.label1}` }]}>
+                        <Form.Item
+                            noStyle
+                            name={record.field1}
+                            rules={[{ required: true, message: `请输入${record.label1}` }]}
+                        >
                             {record.field1 === "insuredName" ? renderInput("请输入客户姓名") : renderInput("请输入")}
                         </Form.Item>
                         {record.field1 === "approvedLoadWeight" && <span>KG</span>}
@@ -68,9 +80,8 @@ const QuoteForm: React.FC = () => {
             title: "车牌号",
             dataIndex: "label2",
             width: "20%",
-            className: "bg-gray-50",
             onCell: (record) => ({
-                colSpan: record.key === "6" ? 0 : undefined,
+                colSpan: record.key === "title" || record.key === "6" ? 0 : undefined,
             }),
             render: (text) => text,
         },
@@ -79,10 +90,10 @@ const QuoteForm: React.FC = () => {
             dataIndex: "input2",
             width: "30%",
             onCell: (record) => ({
-                colSpan: record.key === "6" ? 0 : undefined,
+                colSpan: record.key === "title" || record.key === "6" ? 0 : undefined,
             }),
             render: (_, record) => {
-                if (record.key === "6") {
+                if (record.key === "title" || record.key === "6") {
                     return null;
                 }
                 return (
@@ -92,7 +103,12 @@ const QuoteForm: React.FC = () => {
                         rules={[{ required: true, message: `请输入${record.label2}` }]}
                     >
                         {record.field2 === "firstRegistrationDate" ? (
-                            <DatePicker placeholder="选择日期" className="w-full" variant="borderless" />
+                            <DatePicker
+                                placeholder="选择日期"
+                                suffixIcon={null}
+                                className="w-full"
+                                variant="borderless"
+                            />
                         ) : (
                             renderInput("请输入")
                         )}
@@ -103,6 +119,13 @@ const QuoteForm: React.FC = () => {
     ];
 
     const dataSource = [
+        {
+            key: "title",
+            label1: "",
+            field1: "",
+            label2: "",
+            field2: "",
+        },
         {
             key: "1",
             label1: "被服务人名称",

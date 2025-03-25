@@ -1,6 +1,6 @@
 import { Button, Upload, Input, Form, App } from "antd";
 import { CloudUploadOutlined } from "@ant-design/icons";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { IFormData } from "@/types/formData";
 import type { RcFile } from "antd/es/upload";
 
@@ -15,11 +15,27 @@ const validateExtractedData = (data: any): data is IFormData => {
     return data && typeof data === "object";
 };
 
+const STORAGE_KEY = "customer_info_cache";
+
 export default function LeftUploadSection({ onDataExtracted }: Props) {
     const [form] = Form.useForm();
     const [loading, setLoading] = useState(false);
     const { message } = App.useApp();
     const [fileList, setFileList] = useState<RcFile[]>([]);
+
+    // 从 localStorage 加载缓存的文本
+    useEffect(() => {
+        const cachedText = localStorage.getItem(STORAGE_KEY);
+        if (cachedText) {
+            form.setFieldValue("customerInfo", cachedText);
+        }
+    }, [form]);
+
+    // 监听文本变化并保存到 localStorage
+    const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        const text = e.target.value;
+        localStorage.setItem(STORAGE_KEY, text);
+    };
 
     const handleExtract = async () => {
         try {
@@ -83,7 +99,7 @@ export default function LeftUploadSection({ onDataExtracted }: Props) {
             });
 
             if (!extractResponse.ok) {
-                throw new Error("提取数据失败");
+                throw new Error("提取数据失败，请重试");
             }
 
             const data = await extractResponse.json();
@@ -114,7 +130,11 @@ export default function LeftUploadSection({ onDataExtracted }: Props) {
                 <Form form={form}>
                     <h3 className="text-base font-medium mb-3">客户信息录入</h3>
                     <Form.Item name="customerInfo">
-                        <TextArea rows={6} placeholder="请输入客户信息" />
+                        <TextArea 
+                            rows={7} 
+                            placeholder="请输入客户信息" 
+                            onChange={handleTextChange}
+                        />
                     </Form.Item>
                     <h3 className="text-base font-medium mb-3">上传图片</h3>
                     <Upload.Dragger

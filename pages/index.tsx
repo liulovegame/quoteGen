@@ -12,6 +12,7 @@ import { IFormData } from "@/types/formData";
 import dayjs from "dayjs";
 import ServiceFeeTable from "@/components/ServiceFeeTable";
 import SummaryTable from "@/components/SummaryTable";
+import QuoteHeader from "@/components/QuoteHeader";
 // import CompulsoryTable from "@/components/CompulsoryTable";
 const { Header, Content } = Layout;
 
@@ -62,6 +63,7 @@ export default function Home() {
         // 转换日期字符串为 dayjs 对象
         const formattedData = {
             ...data,
+            approvedLoadWeight: data.approvedLoadWeight || 0,
             services: {
                 damage: { limit: "", fee: "" },
                 driver: { limit: "", fee: "" },
@@ -132,8 +134,9 @@ export default function Home() {
         // 计算保险期限起始日
         let startDate;
         if (data.commercialInsuranceExpiryDate) {
-            // 如果有商业到期日，则起始日为到期日+1天
-            startDate = dayjs(data.commercialInsuranceExpiryDate).add(1, "day");
+            const expiryDate = dayjs(data.commercialInsuranceExpiryDate);
+            const today = dayjs();
+            startDate = expiryDate.isBefore(today) ? today : expiryDate.add(1, "day");
         } else {
             // 如果没有商业到期日，则使用当前系统日期
             startDate = dayjs();
@@ -221,11 +224,7 @@ export default function Home() {
                     <Form form={form} ref={formRef} id="main-quote" className="flex-1 flex gap-4">
                         <div className="flex-1 bg-white rounded-lg p-6">
                             <PreviewImage />
-
-                            <h2 className="text-lg font-medium mb-6">
-                                尊敬的用户 您于{dayjs().format("YYYY-MM-DD")}日服务方案如下:
-                            </h2>
-
+                            <QuoteHeader />
                             <QuoteForm />
 
                             <div className="mt-6">
