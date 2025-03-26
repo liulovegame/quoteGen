@@ -30,16 +30,18 @@ services:
           PORT: 9000
         layers:
           - acs:fc:cn-hangzhou:official:layers/Nodejs18/versions/1
-        memorySize: 1024
-        cpu: 0.1
-        timeout: 60
+        memorySize: 2048
+        cpu: 0.2
+        timeout: 120
         codeUri: ./
-        diskSize: 512
+        diskSize: 1024
         caPort: 9000
         customRuntimeConfig:
           command:
-            - node
-            - server.js
+            - npm
+          args:
+            - run
+            - start
       triggers:
         - name: httpTrigger
           type: http
