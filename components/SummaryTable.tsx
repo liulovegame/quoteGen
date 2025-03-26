@@ -1,15 +1,51 @@
 import { Table, Form, Input, Space } from "antd";
+import { useEffect } from "react";
+
+interface ServiceFeeTableProps {
+    dataSource: Array<{
+        key: string;
+        name: string;
+    }>;
+}
 
 interface SummaryItem {
     key: string;
     name: string;
-    field?: string;
-    value?: string;
+    field: string;
     disabled?: boolean;
 }
 
-const SummaryTable: React.FC = () => {
+const SummaryTable: React.FC<ServiceFeeTableProps> = ({ dataSource }) => {
     const form = Form.useFormInstance();
+
+    // 监听 selectedServices 变化，更新表单数据
+    useEffect(() => {
+        // 从 dataSource 中获取选中的服务
+        const selectedServices = dataSource.reduce((acc, item) => {
+            const serviceType = item.key;
+            const serviceData = form.getFieldValue(["services", serviceType]);
+            if (serviceData) {
+                acc[serviceType] = serviceData;
+            }
+            return acc;
+        }, {} as Record<string, { limit: string; fee: string }>);
+
+        // 更新表单中的 services
+        form.setFieldValue("services", selectedServices);
+
+        // 计算标准服务费合计
+        const totalStandardFee = Object.values(selectedServices)
+            .reduce((total: number, service) => {
+                return total + Number(service.fee || 0);
+            }, 0)
+            .toFixed(2);
+
+        const discount = form.getFieldValue("discount") || 0;
+        const actualFee = (Number(totalStandardFee) * discount).toFixed(2);
+        // 更新标准服务费合计
+        form.setFieldValue("totalStandardFee", totalStandardFee);
+        form.setFieldValue("actualFee", actualFee);
+    }, [dataSource, form]);
 
     const handleActualFeeChange = (value: string) => {
         const actualFee = Number(value) || 0;

@@ -109,7 +109,6 @@ export default function Home() {
                     const vinData = result.data;
 
                     // 映射 VIN 数据到表单
-                    // formattedData.vehicleModel = `${vinData.brand_name}${vinData.model_name}${vinData.sale_name}`; // 厂牌型号
                     formattedData.vehicle = {
                         ...formattedData.vehicle,
                         usageMonths: data.firstRegistrationDate
@@ -121,7 +120,6 @@ export default function Home() {
                     // 更新其他相关字段
                     formattedData.approvedPassengerCapacity = Number(vinData.seat_num); // 核定载客
                     formattedData.vehicleType = vinData.car_type; // 车辆种类
-                    // formattedData.usageType = "非营运"; // 默认使用性质为非营运
                 } else {
                     message.error("获取车辆信息失败");
                 }
@@ -229,7 +227,7 @@ export default function Home() {
 
                             <div className="mt-6">
                                 <ServiceFeeTable dataSource={selectedServices} />
-                                <SummaryTable />
+                                <SummaryTable dataSource={selectedServices} />
                                 {/* <CompulsoryTable /> */}
                             </div>
                             {/* <div className="mt-3 text-sm text-red-500">*如车辆超出服务期则需验车</div>

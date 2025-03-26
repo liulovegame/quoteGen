@@ -1,4 +1,4 @@
-import { Form, Input, DatePicker, Table, Space } from "antd";
+import { Form, Input, DatePicker, Table, Space, InputNumber } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
 
@@ -69,9 +69,20 @@ const QuoteForm: React.FC = () => {
                             name={record.field1}
                             rules={[{ required: true, message: `请输入${record.label1}` }]}
                         >
-                            {record.field1 === "insuredName" ? renderInput("请输入客户姓名") : renderInput("请输入")}
+                            {record.field1 === "insuredName" ? (
+                                renderInput("请输入客户姓名")
+                            ) : record.field1 === "approvedLoadWeight" ? (
+                                <InputNumber
+                                    min={0}
+                                    style={{ width: "100%" }}
+                                    controls={false}
+                                    variant="borderless"
+                                    suffix={<span className="ml-2 text-gray-700">KG</span>}
+                                />
+                            ) : (
+                                renderInput("请输入")
+                            )}
                         </Form.Item>
-                        {record.field1 === "approvedLoadWeight" && <span>KG</span>}
                     </Space.Compact>
                 );
             },
@@ -109,6 +120,8 @@ const QuoteForm: React.FC = () => {
                                 className="w-full"
                                 variant="borderless"
                             />
+                        ) : record.field2 === "approvedPassengerCapacity" ? (
+                            <InputNumber style={{ width: "100%" }} min={0} controls={false} variant="borderless" />
                         ) : (
                             renderInput("请输入")
                         )}

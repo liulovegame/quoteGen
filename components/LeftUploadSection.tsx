@@ -3,6 +3,7 @@ import { CloudUploadOutlined } from "@ant-design/icons";
 import { useState, useEffect } from "react";
 import type { IFormData } from "@/types/formData";
 import type { RcFile } from "antd/es/upload";
+import { generateQuoteNumber } from "@/utils/quote";
 
 const { TextArea } = Input;
 
@@ -15,7 +16,8 @@ const validateExtractedData = (data: any): data is IFormData => {
     return data && typeof data === "object";
 };
 
-const STORAGE_KEY = "customer_info_cache";
+export const STORAGE_KEY = "customer_info_cache";
+export const STORAGE_KEY_OCR = "ocr_info_cache";
 
 export default function LeftUploadSection({ onDataExtracted }: Props) {
     const [form] = Form.useForm();
@@ -80,6 +82,7 @@ export default function LeftUploadSection({ onDataExtracted }: Props) {
 
                 // 合并所有 OCR 结果
                 const combinedText = ocrResults.filter((text) => text).join("\n");
+                localStorage.setItem(STORAGE_KEY_OCR, combinedText);
 
                 // 合并手动输入和 OCR 结果
                 finalText = [finalText, combinedText].filter((text) => text).join("\n");
@@ -110,7 +113,10 @@ export default function LeftUploadSection({ onDataExtracted }: Props) {
             }
 
             // 调用回调函数更新主表单
-            onDataExtracted?.(data);
+            onDataExtracted?.({
+                ...data,
+                quote_number: generateQuoteNumber(),
+            });
             message.success("数据提取成功");
 
             // 清空当前文本框和文件列表
@@ -130,11 +136,7 @@ export default function LeftUploadSection({ onDataExtracted }: Props) {
                 <Form form={form}>
                     <h3 className="text-base font-medium mb-3">客户信息录入</h3>
                     <Form.Item name="customerInfo">
-                        <TextArea 
-                            rows={7} 
-                            placeholder="请输入客户信息" 
-                            onChange={handleTextChange}
-                        />
+                        <TextArea rows={7} placeholder="请输入客户信息" onChange={handleTextChange} />
                     </Form.Item>
                     <h3 className="text-base font-medium mb-3">上传图片</h3>
                     <Upload.Dragger

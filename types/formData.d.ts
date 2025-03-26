@@ -1,6 +1,7 @@
 import type { Dayjs } from 'dayjs';
 
 export interface IFormData {
+    quote_number?: string;                  // 报价单号
     insuredName: string;                    // 被服务人名称
     licensePlateNumber: string;             // 车牌号
     engineNumber: string;                   // 发动机号
@@ -30,15 +31,14 @@ export interface IFormData {
     discount: string; // 折扣
     actualFee: string; // 实收服务费
     totalStandardFee: string; // 标准服务费合计	
-    compulsory: {
-        insurance: string; // 保险费
-        tax: string; // 车船税
-        total: string; // 总费用
-    };
+    // compulsory: {
+    //     insurance: string; // 保险费
+    //     tax: string; // 车船税
+    //     total: string; // 总费用
+    // };
     vehicle: {
         nature: string; // 车辆性质
         type: string; // 车辆类型
-        subType: string; // 车辆子类
         usageMonths: number; // 使用月数
         guidePrice: number; // 新车购置价
         depreciationRate: number; // 月折旧率

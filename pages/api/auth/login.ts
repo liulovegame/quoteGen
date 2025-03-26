@@ -25,9 +25,13 @@ export default async function handler(
 
         if (error) throw error;
 
+
         return res.status(200).json({
             user: data.user?.user_metadata,
-            session: data.session
+            session: {
+                access_token: data.session?.access_token,
+                refresh_token: data.session?.refresh_token
+            }
         });
     } catch (error: any) {
         return res.status(400).json({
