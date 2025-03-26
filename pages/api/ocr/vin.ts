@@ -99,7 +99,7 @@ setToCache("LGXCE4CB8R0219341", {
     made_month: "10",
     transmission_type: "手自一体变速器(AMT)",
     fuel_Type: "汽油",
-    cylinder_number: "4",
+    cylinder_number: "5",
     drive_style: "前轮驱动",
     car_line: "宝来",
     fuel_num: "93#",
