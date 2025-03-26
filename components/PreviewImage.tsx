@@ -16,8 +16,8 @@ const PreviewImage = () => {
     const transformFormData = (formData: any) => {
         const userStr = localStorage.getItem("quote_user");
         let email = "";
-        let customer_info = localStorage.getItem(STORAGE_KEY) || "";
-        let ocr_info = localStorage.getItem(STORAGE_KEY_OCR) || "";
+        const customer_info = localStorage.getItem(STORAGE_KEY) || "";
+        const ocr_info = localStorage.getItem(STORAGE_KEY_OCR) || "";
         if (userStr) {
             const user = JSON.parse(userStr);
             email = user.email || "";
