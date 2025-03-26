@@ -1,43 +1,41 @@
 edition: 1.0.0
-name: baojiadan-app
-access: "undefined"
-
-vars:
-  region: "cn-hangzhou"
-  functionName: "baojiadan"
-  service:
-    name: "baojiadan-service"
-    description: 'Baojiadan Next.js Application Service'
-
+name: my-framework-app
+access: default
 services:
   framework:
     component: fc
     actions:
       pre-deploy:
-        - run: export PATH=/usr/local/versions/node/v16.15.0/bin:$PATH && npm install --production --registry=https://registry.npmmirror.com
+        - run: npm install --production --registry=https://registry.npmmirror.com
           path: ./
-        - run: export PATH=/usr/local/versions/node/v16.15.0/bin:$PATH && npm run build
+        - run: npm run build
           path: ./
         - run: cp -r public .next/standalone/public
           path: ./
         - run: mv static standalone/.next/static
           path: ./.next
     props:
-      region: ${vars.region}
-      service: ${vars.service}
+      region: cn-hangzhou
+      service:
+        name: serverless-devs-application
       function:
-        name: ${vars.functionName}
-        description: 'Baojiadan Next.js Application'
-        codeUri: './code/.next/standalone'
-        runtime: custom
-        timeout: 60
-        caPort: 3000
-        memorySize: 1024
-        layers:
-          - acs:fc:${vars.region}:official:layers/Nodejs16/versions/1
+        name: quoteGen-ugko
+        description: Next.js Application
+        runtime: custom.debian10
         environmentVariables:
-          PATH: /opt/nodejs16/bin:/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+          PATH: >-
+            /opt/nodejs18/bin:/usr/local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/code:/code/bin
+          NODE_PATH: /opt/nodejs/node_modules
           NODE_ENV: production
+          PORT: 9000
+        layers:
+          - acs:fc:cn-hangzhou:official:layers/Nodejs18/versions/1
+        memorySize: 1024
+        cpu: 0.1
+        timeout: 60
+        codeUri: ./
+        diskSize: 512
+        caPort: 9000
         customRuntimeConfig:
           command:
             - node
@@ -53,9 +51,4 @@ services:
               - PUT
               - DELETE
               - HEAD
-              - OPTIONS
-      customDomains:
-        - domainName: auto
-          protocol: HTTP
-          routeConfigs:
-            - path: '/*' 
+              - PATCH
