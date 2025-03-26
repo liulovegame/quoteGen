@@ -125,9 +125,6 @@ const PreviewImage = () => {
                 }),
             });
 
-            if (!response.ok) {
-                throw new Error("保存报价单失败");
-            }
             setCurrentQuoteNumber(quoteNumber);
 
             const result = await response.json();
@@ -135,7 +132,6 @@ const PreviewImage = () => {
             return result;
         } catch (error) {
             console.error("Error saving quote:", error);
-            message.error("保存报价单失败");
             throw error;
         }
     };

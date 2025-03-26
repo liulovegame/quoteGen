@@ -30,13 +30,14 @@ const calculatePassengerService = (amount: number = 0, passengerCapacity: number
     return { limit, fee };
 };
 
-const VehicleInfo: React.FC = () => {
+const VehicleInfo: React.FC<{ handleLoading: (loading: boolean) => void }> = ({ handleLoading }) => {
     const form = Form.useFormInstance();
     const [typeOptions, setTypeOptions] = useState<{ label: string; value: string }[]>([]);
 
     // 查询服务数据
     const queryServiceData = async (nature: string, type: string) => {
         try {
+            handleLoading(true);
             const currentFormData = form.getFieldsValue(true) as IFormData;
             const vehicle = currentFormData.vehicle || {};
 
@@ -132,7 +133,7 @@ const VehicleInfo: React.FC = () => {
             );
 
             // 先更新折旧率
-            form.setFieldValue(["vehicle", "depreciationRate"], depreciationRate);;
+            form.setFieldValue(["vehicle", "depreciationRate"], depreciationRate);
 
             // 再更新服务数据
             const services: IFormData["services"] = {
@@ -182,10 +183,12 @@ const VehicleInfo: React.FC = () => {
                 totalStandardFee,
                 actualFee,
                 discount,
-                damageFee: feeRate
+                damageFee: feeRate,
             });
+            handleLoading(false);
         } catch (error) {
             console.error("查询服务数据失败:", error);
+            handleLoading(false);
         }
     };
 
@@ -243,9 +246,9 @@ const VehicleInfo: React.FC = () => {
                     <DatePicker placeholder="选择日期" className="!w-full" />
                 </Form.Item>
 
-                <Form.Item 
-                    label="出险次数" 
-                    name="claimCount" 
+                <Form.Item
+                    label="出险次数"
+                    name="claimCount"
                     rules={[{ required: true, message: "请输入出险次数" }]}
                     required={false}
                 >

@@ -13,7 +13,7 @@ export const INSURANCE_SERVICES = [
 ];
 
 interface InsuranceOptionsProps {
-    onServiceChange?: (services: { key: string; name: string; limit?: string }[]) => void;
+    onServiceChange?: (services: { key: string; name: string }[]) => void;
 }
 
 const InsuranceOptions: React.FC<InsuranceOptionsProps> = ({ onServiceChange }) => {
@@ -26,10 +26,32 @@ const InsuranceOptions: React.FC<InsuranceOptionsProps> = ({ onServiceChange }) 
             (service) => ({
                 key: service.id,
                 name: service.label,
-                // 如果是乘客责任，添加默认限额
-                ...(service.id === "driver" ? { limit: "10000.00*4座" } : {}),
             })
         );
+
+        // 从 dataSource 中获取选中的服务
+        const services = selectedServices.reduce((acc, item) => {
+            const serviceType = item.key;
+            const serviceData = form.getFieldValue(["services", serviceType]);
+            if (serviceData) {
+                acc[serviceType] = serviceData;
+            }
+            return acc;
+        }, {} as Record<string, { limit: string; fee: string }>);
+
+        // 计算标准服务费合计
+        const totalStandardFee = Object.values(services)
+            .reduce((total: number, service) => {
+                return total + Number(service.fee || 0);
+            }, 0)
+            .toFixed(2);
+
+        const discount = form.getFieldValue("discount") || 0;
+        const actualFee = (Number(totalStandardFee) * discount).toFixed(2);
+        // 更新标准服务费合计
+        form.setFieldValue("totalStandardFee", totalStandardFee);
+        form.setFieldValue("actualFee", actualFee);
+
         onServiceChange?.(selectedServices);
     };
 

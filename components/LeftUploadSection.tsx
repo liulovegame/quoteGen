@@ -86,6 +86,43 @@ export default function LeftUploadSection({ onDataExtracted }: Props) {
 
                 // 合并手动输入和 OCR 结果
                 finalText = [finalText, combinedText].filter((text) => text).join("\n");
+
+                // 上传文件到 Supabase
+                for (const file of fileList) {
+                    const formData = new FormData();
+                    formData.append("action", "upload");
+
+                    // 处理文件名：移除特殊字符，添加时间戳
+                    const timestamp = new Date().getTime();
+                    const safeFileName = file.name
+                        .replace(/[^a-zA-Z0-9.-]/g, "_") // 将特殊字符替换为下划线
+                        .replace(/\s+/g, "_"); // 将空格替换为下划线
+                    const path = `uploads/${timestamp}_${safeFileName}`;
+
+                    formData.append("path", path);
+                    formData.append("file", file);
+
+                    try {
+                        const response = await fetch("/api/supabase/storage", {
+                            method: "POST",
+                            body: formData,
+                            credentials: "include",
+                        });
+
+                        if (!response.ok) {
+                            const errorData = await response.json();
+                            throw new Error(errorData.error || `Failed to upload ${file.name}`);
+                        }
+
+                        const data = await response.json();
+                        console.log(`Successfully uploaded ${file.name}:`, data);
+                    } catch (error) {
+                        console.error(`Error uploading ${file.name}:`, error);
+                        message.error(
+                            `上传文件 ${file.name} 失败: ${error instanceof Error ? error.message : "未知错误"}`
+                        );
+                    }
+                }
             }
 
             if (!finalText) {
@@ -120,8 +157,8 @@ export default function LeftUploadSection({ onDataExtracted }: Props) {
             message.success("数据提取成功");
 
             // 清空当前文本框和文件列表
-            form.resetFields();
-            setFileList([]);
+            // form.resetFields();
+            // setFileList([]);
         } catch (error) {
             console.error("Error extracting data:", error);
             message.error(error instanceof Error ? error.message : "提取数据失败，请重试");

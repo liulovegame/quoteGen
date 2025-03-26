@@ -1,5 +1,6 @@
-import { Table, Form, Input, Space } from "antd";
+import { Table, Form, Input, Space, Select } from "antd";
 import { IFormData } from "@/types/formData";
+import { insuranceLimits } from "@/constants/insuranceLimits";
 
 interface ServiceFeeTableProps {
     dataSource: Array<{
@@ -8,7 +9,11 @@ interface ServiceFeeTableProps {
     }>;
 }
 
+// 可修改的服务项目
 const CHANGE_KEYS = ["damage", "third_party", "theft", "driver", "medical"];
+
+// 可选择的服务项目
+const SELECT_KEYS = ["third_party", "theft", "driver", "medical"];
 
 const ServiceFeeTable: React.FC<ServiceFeeTableProps> = ({ dataSource }) => {
     const form = Form.useFormInstance();
@@ -88,6 +93,21 @@ const ServiceFeeTable: React.FC<ServiceFeeTableProps> = ({ dataSource }) => {
                 if (data.success && data.data?.[0]) {
                     const fee = data.data[0].fee;
                     form.setFieldValue(["services", serviceType, "fee"], fee);
+
+                    const services: IFormData["services"] = form.getFieldValue("services");
+                    // 计算标准服务费合计
+                    const totalStandardFee = Object.values(services)
+                        .reduce((total: number, service) => {
+                            return total + Number(service.fee || 0);
+                        }, 0)
+                        .toFixed(2);
+
+                    // 计算实收服务费
+                    const discount = 0.5;
+                    const actualFee = (Number(totalStandardFee) * discount).toFixed(2);
+
+                    form.setFieldValue("totalStandardFee", totalStandardFee);
+                    form.setFieldValue("actualFee", actualFee);
                 }
             }
         } catch (error) {
@@ -121,9 +141,30 @@ const ServiceFeeTable: React.FC<ServiceFeeTableProps> = ({ dataSource }) => {
                     width: "30%",
                     align: "center",
                     render: (_, record) => (
-                        <Space.Compact className="items-center">
-                            <Form.Item noStyle name={["services", record.key, "limit"]}>
-                                <Input placeholder="请输入" variant="borderless" className="text-center" />
+                        <Space.Compact className="items-center w-full">
+                            <Form.Item className="w-full" noStyle name={["services", record.key, "limit"]}>
+                                {SELECT_KEYS.includes(record.key) ? (
+                                    <Select
+                                        placeholder="请选择"
+                                        variant="borderless"
+                                        className="w-full"
+                                        suffixIcon={null}
+                                        onChange={(value) => handleInputChange(record.key, value.toString())}
+                                        options={insuranceLimits
+                                            .find((item) => item.key === record.key)
+                                            ?.limits.map((limit) => ({
+                                                label: limit,
+                                                value: limit,
+                                            }))}
+                                    />
+                                ) : (
+                                    <Input
+                                        placeholder="请输入"
+                                        variant="borderless"
+                                        className="text-center"
+                                        disabled={record.key === "damage"}
+                                    />
+                                )}
                             </Form.Item>
                             {record.key === "driver" && passengerCapacity && (
                                 <span className="w-20">*{passengerCapacity - 1}座</span>

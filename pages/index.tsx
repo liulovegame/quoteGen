@@ -1,4 +1,4 @@
-import { Layout, Avatar, Form, Dropdown, message } from "antd";
+import { Layout, Avatar, Form, Dropdown, message, Spin } from "antd";
 import { UserOutlined, LogoutOutlined, DownOutlined, MailOutlined } from "@ant-design/icons";
 import QuoteForm from "@/components/QuoteForm";
 import VehicleInfo from "@/components/VehicleInfo";
@@ -22,6 +22,7 @@ export default function Home() {
     const router = useRouter();
     const [userName, setUserName] = useState<string>("");
     const [email, setEmail] = useState<string>("");
+    const [loading, setLoading] = useState<boolean>(false);
     const [selectedServices, setSelectedServices] = useState([
         { key: "damage", name: "机动车损失服务" },
         { key: "third_party", name: "第三者责任服务" },
@@ -49,8 +50,12 @@ export default function Home() {
     }, []);
 
     // 处理保险服务变化
-    const handleServiceChange = (services: { key: string; name: string; limit?: string }[]) => {
+    const handleServiceChange = (services: { key: string; name: string }[]) => {
         setSelectedServices(services);
+    };
+
+    const handleLoading = (loading: boolean) => {
+        setLoading(loading);
     };
 
     const handleLogout = () => {
@@ -226,9 +231,11 @@ export default function Home() {
                             <QuoteForm />
 
                             <div className="mt-6">
-                                <ServiceFeeTable dataSource={selectedServices} />
-                                <SummaryTable dataSource={selectedServices} />
-                                {/* <CompulsoryTable /> */}
+                                <Spin spinning={loading}>
+                                    <ServiceFeeTable dataSource={selectedServices} />
+                                    <SummaryTable dataSource={selectedServices} />
+                                    {/* <CompulsoryTable /> */}
+                                </Spin>
                             </div>
                             {/* <div className="mt-3 text-sm text-red-500">*如车辆超出服务期则需验车</div>
                             <div className="text-sm text-red-500">*此报价单仅供参考,实际服务费以出单为准</div> */}
@@ -236,7 +243,7 @@ export default function Home() {
 
                         {/* 右侧栏  */}
                         <div className="w-64 layout-form-right">
-                            <VehicleInfo />
+                            <VehicleInfo handleLoading={handleLoading} />
                             <InsuranceOptions onServiceChange={handleServiceChange} />
                         </div>
                     </Form>
