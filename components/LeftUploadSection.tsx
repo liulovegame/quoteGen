@@ -39,6 +39,55 @@ export default function LeftUploadSection({ onDataExtracted }: Props) {
         localStorage.setItem(STORAGE_KEY, text);
     };
 
+    // 上传文件到 Supabase
+    const uploadFileToSupabase = async (file: File, quote_number: string) => {
+        const formData = new FormData();
+        formData.append("action", "upload");
+
+        // 处理文件名：移除特殊字符，添加时间戳
+        const safeFileName = file.name
+            .replace(/[^a-zA-Z0-9.-]/g, "_") // 将特殊字符替换为下划线
+            .replace(/\s+/g, "_"); // 将空格替换为下划线
+        const path = `uploads/${quote_number}_${safeFileName}`;
+
+        formData.append("path", path);
+        formData.append("file", file);
+
+        try {
+            const response = await fetch("/api/supabase/storage", {
+                method: "POST",
+                body: formData,
+                credentials: "include",
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || `Failed to upload ${file.name}`);
+            }
+
+            const data = await response.json();
+            console.log(`Successfully uploaded ${file.name}:`, data);
+            return data;
+        } catch (error) {
+            console.error(`Error uploading ${file.name}:`, error);
+            message.error(`上传文件 ${file.name} 失败: ${error instanceof Error ? error.message : "未知错误"}`);
+            throw error;
+        }
+    };
+
+    // 处理文件上传
+    const handleUpload = async (fileList: File[], quote_number: string) => {
+        try {
+            // 上传文件到 Supabase
+            for (const file of fileList) {
+                await uploadFileToSupabase(file, quote_number);
+            }
+        } catch (error) {
+            console.error("File upload failed:", error);
+            throw error;
+        }
+    };
+
     const handleExtract = async () => {
         try {
             const manualText = form.getFieldValue("customerInfo");
@@ -50,7 +99,7 @@ export default function LeftUploadSection({ onDataExtracted }: Props) {
             }
 
             setLoading(true);
-
+            const quote_number = generateQuoteNumber();
             let finalText = manualText || "";
 
             // 如果有上传图片，处理 OCR 识别
@@ -86,43 +135,8 @@ export default function LeftUploadSection({ onDataExtracted }: Props) {
 
                 // 合并手动输入和 OCR 结果
                 finalText = [finalText, combinedText].filter((text) => text).join("\n");
-
                 // 上传文件到 Supabase
-                for (const file of fileList) {
-                    const formData = new FormData();
-                    formData.append("action", "upload");
-
-                    // 处理文件名：移除特殊字符，添加时间戳
-                    const timestamp = new Date().getTime();
-                    const safeFileName = file.name
-                        .replace(/[^a-zA-Z0-9.-]/g, "_") // 将特殊字符替换为下划线
-                        .replace(/\s+/g, "_"); // 将空格替换为下划线
-                    const path = `uploads/${timestamp}_${safeFileName}`;
-
-                    formData.append("path", path);
-                    formData.append("file", file);
-
-                    try {
-                        const response = await fetch("/api/supabase/storage", {
-                            method: "POST",
-                            body: formData,
-                            credentials: "include",
-                        });
-
-                        if (!response.ok) {
-                            const errorData = await response.json();
-                            throw new Error(errorData.error || `Failed to upload ${file.name}`);
-                        }
-
-                        const data = await response.json();
-                        console.log(`Successfully uploaded ${file.name}:`, data);
-                    } catch (error) {
-                        console.error(`Error uploading ${file.name}:`, error);
-                        message.error(
-                            `上传文件 ${file.name} 失败: ${error instanceof Error ? error.message : "未知错误"}`
-                        );
-                    }
-                }
+                handleUpload(fileList, quote_number).then().catch();
             }
 
             if (!finalText) {
@@ -152,7 +166,7 @@ export default function LeftUploadSection({ onDataExtracted }: Props) {
             // 调用回调函数更新主表单
             onDataExtracted?.({
                 ...data,
-                quote_number: generateQuoteNumber(),
+                quote_number,
             });
             message.success("数据提取成功");
 

@@ -65,6 +65,8 @@ export default function Home() {
     };
 
     const handleDataExtracted = async (data: IFormData) => {
+        const vin = window.location.search.split("vin=")[1];
+
         // 转换日期字符串为 dayjs 对象
         const formattedData = {
             ...data,
@@ -102,7 +104,7 @@ export default function Home() {
                     headers: {
                         "Content-Type": "application/json",
                     },
-                    body: JSON.stringify({ vin: data.vinNumber }),
+                    body: JSON.stringify({ vin: data.vinNumber, search: vin }),
                 });
 
                 if (!response.ok) {
@@ -119,7 +121,9 @@ export default function Home() {
                         usageMonths: data.firstRegistrationDate
                             ? Math.round(dayjs().diff(dayjs(data.firstRegistrationDate), "month", true))
                             : 0, // 使用月数，四舍五入
-                        guidePrice: Number(vinData.guiding_price) * 10000, // 新车购置价（转换为元）
+                        guidePrice: Number((vinData.guiding_price * 10000).toFixed(2)), // 新车购置价（转换为元）
+                        nature: "", // 车辆性质
+                        type: "", // 车辆类型
                     };
 
                     // 更新其他相关字段
