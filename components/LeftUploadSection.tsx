@@ -140,6 +140,19 @@ export default function LeftUploadSection({ onDataExtracted }: Props) {
                             }
 
                             const result = await response.json();
+                            if (!result.success) {
+                                throw new Error(`OCR 识别失败: ${file.name}`);
+                            }
+                            
+                            // OCR 识别成功后，立即上传文件
+                            try {
+                                await uploadFileToSupabase(file, quote_number);
+                                console.log(`文件 ${file.name} OCR 识别成功并上传`);
+                            } catch (uploadError) {
+                                console.error(`文件 ${file.name} 上传失败:`, uploadError);
+                                // message.error(`文件 ${file.name} 上传失败`);
+                            }
+                            
                             return result.data.content || "";
                         } catch (error) {
                             console.error(`Error processing file ${file.name}:`, error);
@@ -155,7 +168,7 @@ export default function LeftUploadSection({ onDataExtracted }: Props) {
                 // 合并手动输入和 OCR 结果
                 finalText = [finalText, combinedText].filter((text) => text).join("\n");
                 // 上传文件到 Supabase
-                handleUpload(fileList, quote_number).then().catch();
+                // handleUpload(fileList, quote_number).then().catch();
             }
 
             if (!finalText) {

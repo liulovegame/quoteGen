@@ -63,7 +63,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         // 创建运行时选项
         const runtime = new $Util.RuntimeOptions({
-            readTimeout: 10000,
+            readTimeout: 30000,
             connectTimeout: 10000,
             ignoreSSL: true,
         });
@@ -78,8 +78,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 type: "Advanced",
             });
 
-            // 调用 API
-            const result = await client.recognizeAllTextWithOptions(recognizeRequest, runtime);
+            // 设置请求超时
+            const timeoutPromise = new Promise((_, reject) => {
+                setTimeout(() => {
+                    reject(new Error("OCR 识别超时，请重试"));
+                }, 30000);
+            });
+
+            // 调用 API，使用 Promise.race 实现超时控制
+            const result = await Promise.race([
+                client.recognizeAllTextWithOptions(recognizeRequest, runtime),
+                timeoutPromise
+            ]) as $Ocr.RecognizeAllTextResponse;
 
             // 清理临时文件
             await fs.unlink(file.filepath).catch(console.error);
