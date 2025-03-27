@@ -218,14 +218,14 @@ export default function Home() {
             </Header>
 
             {/* 主要内容区域 */}
-            <Content className="p-6">
+            <Content className="p-6 ml-auto mr-auto">
                 <div className="flex gap-4">
                     {/* 左侧栏  */}
                     <LeftUploadSection onDataExtracted={handleDataExtracted} />
 
                     {/* 中间区域  */}
-                    <Form form={form} ref={formRef} id="main-quote" className="flex-1 flex gap-4">
-                        <div className="flex-1 bg-white rounded-lg p-6">
+                    <Form form={form} ref={formRef} className="flex-1 flex gap-4">
+                        <div id="main-quote" className="bg-white rounded-lg p-6" style={{ width: "794px" }}>
                             <PreviewImage />
                             <QuoteHeader />
                             <QuoteForm />
@@ -242,7 +242,7 @@ export default function Home() {
                         </div>
 
                         {/* 右侧栏  */}
-                        <div className="w-64 layout-form-right">
+                        <div className="flex-1 max-w-72 layout-form-right">
                             <VehicleInfo handleLoading={handleLoading} />
                             <InsuranceOptions onServiceChange={handleServiceChange} />
                         </div>

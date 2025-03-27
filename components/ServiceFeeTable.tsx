@@ -19,6 +19,27 @@ const ServiceFeeTable: React.FC<ServiceFeeTableProps> = ({ dataSource }) => {
     const form = Form.useFormInstance();
     const passengerCapacity = Form.useWatch("approvedPassengerCapacity", form);
 
+    // 计算服务费
+    const calculateServiceFees = () => {
+        const services: IFormData["services"] = form.getFieldValue("services") || {};
+        const validServiceKeys = dataSource.map((item) => item.key);
+
+        // 计算标准服务费合计
+        const totalStandardFee = Object.entries(services)
+            .filter(([key]) => validServiceKeys.includes(key))
+            .reduce((total: number, [_, service]) => {
+                return total + Number(service.fee || 0);
+            }, 0)
+            .toFixed(2);
+
+        // 计算实收服务费
+        const discount = form.getFieldValue("discount") || 0.5;
+        const actualFee = (Number(totalStandardFee) * discount).toFixed(2);
+
+        form.setFieldValue("totalStandardFee", totalStandardFee);
+        form.setFieldValue("actualFee", actualFee);
+    };
+
     // 查询服务数据
     const queryServiceData = async (serviceType: string, value: string) => {
         try {
@@ -93,21 +114,7 @@ const ServiceFeeTable: React.FC<ServiceFeeTableProps> = ({ dataSource }) => {
                 if (data.success && data.data?.[0]) {
                     const fee = data.data[0].fee;
                     form.setFieldValue(["services", serviceType, "fee"], fee);
-
-                    const services: IFormData["services"] = form.getFieldValue("services");
-                    // 计算标准服务费合计
-                    const totalStandardFee = Object.values(services)
-                        .reduce((total: number, service) => {
-                            return total + Number(service.fee || 0);
-                        }, 0)
-                        .toFixed(2);
-
-                    // 计算实收服务费
-                    const discount = 0.5;
-                    const actualFee = (Number(totalStandardFee) * discount).toFixed(2);
-
-                    form.setFieldValue("totalStandardFee", totalStandardFee);
-                    form.setFieldValue("actualFee", actualFee);
+                    calculateServiceFees();
                 }
             }
         } catch (error) {
@@ -118,7 +125,18 @@ const ServiceFeeTable: React.FC<ServiceFeeTableProps> = ({ dataSource }) => {
     // 处理输入变化
     const handleInputChange = (serviceType: string, value: string) => {
         if (CHANGE_KEYS.includes(serviceType)) {
-            queryServiceData(serviceType, value);
+            if (serviceType === "damage") {
+                const currentFormData = form.getFieldsValue(true) as IFormData;
+                const limit = Number(value) || 0;
+                const services = currentFormData.services || {};
+
+                // 计算标准服务费
+                const standardFee = limit * ((currentFormData.damageFee || 1) / 100);
+                form.setFieldValue(["services", serviceType, "fee"], standardFee.toFixed(2));
+                calculateServiceFees();
+            } else {
+                queryServiceData(serviceType, value);
+            }
         }
     };
 
@@ -162,7 +180,7 @@ const ServiceFeeTable: React.FC<ServiceFeeTableProps> = ({ dataSource }) => {
                                         placeholder="请输入"
                                         variant="borderless"
                                         className="text-center"
-                                        disabled={record.key === "damage"}
+                                        onChange={(e) => handleInputChange(record.key, e.target.value)}
                                     />
                                 )}
                             </Form.Item>

@@ -7,6 +7,7 @@ const PreviewImage = () => {
     const form = Form.useFormInstance();
     const [previewUrl, setPreviewUrl] = useState<string>("");
     const [loading, setLoading] = useState(false);
+    const [saveLoading, setSaveLoading] = useState(false);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [currentQuoteNumber, setCurrentQuoteNumber] = useState<string>("");
     const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -104,6 +105,17 @@ const PreviewImage = () => {
         };
     };
 
+    // 重试函数
+    const retry = async (fn: () => Promise<any>, retries = 3, delay = 1000) => {
+        try {
+            return await fn();
+        } catch (error) {
+            if (retries === 0) throw error;
+            await new Promise((resolve) => setTimeout(resolve, delay));
+            return retry(fn, retries - 1, delay);
+        }
+    };
+
     // 保存或更新报价单
     const saveQuote = async (formData: any) => {
         try {
@@ -113,22 +125,28 @@ const PreviewImage = () => {
             // 转换表单数据为数据库格式
             const transformedData = transformFormData(formData);
 
-            const response = await fetch("/api/supabase/quotes", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    action,
-                    data: transformedData,
-                    quote_number: quoteNumber,
-                }),
-            });
+            const saveOperation = async () => {
+                const response = await fetch("/api/supabase/quotes", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        action,
+                        data: transformedData,
+                        quote_number: quoteNumber,
+                    }),
+                });
+                const result = await response.json();
+                if (!response.ok) {
+                    throw new Error(result.message || "保存失败");
+                }
+                return result;
+            };
 
+            // 使用重试机制执行保存操作
+            const result = await retry(saveOperation);
             setCurrentQuoteNumber(quoteNumber);
-
-            const result = await response.json();
-            // message.success(action === "create" ? "创建报价单成功" : "更新报价单成功");
             return result;
         } catch (error) {
             console.error("Error saving quote:", error);
@@ -144,10 +162,6 @@ const PreviewImage = () => {
             watermarkImageRef.current = img;
         };
     }, []);
-
-    // A4 尺寸（像素）
-    const A4_WIDTH = 794; // 210mm * 3.78px/mm
-    const A4_HEIGHT = 1123; // 297mm * 3.78px/mm
 
     const generatePreview = async () => {
         try {
@@ -179,6 +193,7 @@ const PreviewImage = () => {
                 logging: false,
                 backgroundColor: "#ffffff",
                 allowTaint: true,
+                imageTimeout: 0,
                 onclone: (documentClone) => {
                     // 在克隆的文档中处理 input 和 textarea 元素
                     const clonedInputs = documentClone.querySelectorAll("input, textarea");
@@ -196,11 +211,34 @@ const PreviewImage = () => {
                             div.style.whiteSpace = "nowrap";
                         }
 
-                        div.style.cssText = window.getComputedStyle(element).cssText;
-                        div.style.color = "black";
-                        div.style.backgroundColor = "transparent";
-                        div.style.border = "none";
-                        div.style.overflow = "visible";
+                        // 获取计算后的样式
+                        const computedStyle = window.getComputedStyle(element);
+
+                        // 复制所有相关样式
+                        div.style.cssText = `
+                            ${computedStyle.cssText}
+                            color: black;
+                            background-color: transparent;
+                            border: none;
+                            overflow: visible;
+                            text-align: ${computedStyle.textAlign};
+                            padding: ${computedStyle.padding};
+                            margin: ${computedStyle.margin};
+                            width: ${computedStyle.width};
+                            height: ${computedStyle.height};
+                            line-height: ${computedStyle.lineHeight};
+                            font-size: ${computedStyle.fontSize};
+                            font-family: ${computedStyle.fontFamily};
+                            display: ${computedStyle.display};
+                            position: ${computedStyle.position};
+                            box-sizing: ${computedStyle.boxSizing};
+                        `;
+
+                        // 确保文本对齐方式正确
+                        if (computedStyle.textAlign === "center") {
+                            div.style.textAlign = "center";
+                        }
+
                         element.parentNode?.replaceChild(div, element);
                     });
                 },
@@ -216,57 +254,47 @@ const PreviewImage = () => {
                 (input as HTMLElement).style.color = "";
             });
 
-            // 创建 A4 大小的画布
-            const a4Canvas = document.createElement("canvas");
-            const a4Ctx = a4Canvas.getContext("2d");
-            if (!a4Ctx) throw new Error("Failed to get canvas context");
+            // 保存 canvas 引用以供下载使用
+            canvasRef.current = originalCanvas;
+            
+            // 创建临时画布用于添加水印
+            const tempCanvas = document.createElement("canvas");
+            const tempCtx = tempCanvas.getContext("2d");
+            if (!tempCtx) throw new Error("Failed to get temp canvas context");
 
-            // 设置 A4 尺寸
-            a4Canvas.width = A4_WIDTH;
-            a4Canvas.height = A4_HEIGHT;
+            // 设置临时画布尺寸与原始画布相同
+            tempCanvas.width = originalCanvas.width;
+            tempCanvas.height = originalCanvas.height;
 
-            // 填充白色背景
-            a4Ctx.fillStyle = "#ffffff";
-            a4Ctx.fillRect(0, 0, A4_WIDTH, A4_HEIGHT);
-
-            // 计算缩放比例以适应 A4 纸张宽度
-            const scale = (A4_WIDTH - 40) / originalCanvas.width; // 留出左右各 20px 的边距
-            const scaledWidth = originalCanvas.width * scale;
-            const scaledHeight = originalCanvas.height * scale;
-
-            // 计算位置 - 水平居中，从顶部开始
-            const x = (A4_WIDTH - scaledWidth) / 2; // 水平居中
-            const y = 30; // 上边距保持 30px
-
-            // 绘制缩放后的图片
-            a4Ctx.drawImage(originalCanvas, x, y, scaledWidth, scaledHeight);
+            // 绘制原始画布内容
+            tempCtx.drawImage(originalCanvas, 0, 0);
 
             // 添加水印
             if (watermarkImageRef.current) {
-                a4Ctx.save();
+                tempCtx.save();
+                
+                // 设置水印透明度
+                tempCtx.globalAlpha = 0.1;
 
-                // 设置水印样式
-                a4Ctx.globalAlpha = 0.1; // 设置透明度
-
-                // 计算水印大小（设置为页面宽度的60%）
-                const watermarkWidth = A4_WIDTH * 0.6;
+                // 计算水印大小（设置为画布宽度的60%）
+                const watermarkWidth = tempCanvas.width * 0.6;
                 const aspectRatio = watermarkImageRef.current.height / watermarkImageRef.current.width;
                 const watermarkHeight = watermarkWidth * aspectRatio;
 
-                // 计算水印位置（水平居中，垂直位置在1/3处）
-                const watermarkX = (A4_WIDTH - watermarkWidth) / 2;
-                const watermarkY = A4_HEIGHT * 0.36 - watermarkHeight / 2;
+                // 计算水印位置（水平居中，垂直位置在1/2处）
+                const watermarkX = (tempCanvas.width - watermarkWidth) / 2;
+                const watermarkY = tempCanvas.height * 0.4 - watermarkHeight / 2;
 
                 // 绘制水印
-                a4Ctx.drawImage(watermarkImageRef.current, watermarkX, watermarkY, watermarkWidth, watermarkHeight);
+                tempCtx.drawImage(watermarkImageRef.current, watermarkX, watermarkY, watermarkWidth, watermarkHeight);
 
                 // 恢复画布状态
-                a4Ctx.restore();
+                tempCtx.restore();
             }
 
-            // 保存 canvas 引用以供下载使用
-            canvasRef.current = a4Canvas;
-            return a4Canvas.toDataURL("image/png", 1.0);
+            // 更新 canvasRef 为添加了水印的画布
+            canvasRef.current = tempCanvas;
+            return tempCanvas.toDataURL("image/png", 1.0);
         } catch (error) {
             console.error("Preview generation failed:", error);
             message.error("生成预览图失败");
@@ -277,10 +305,6 @@ const PreviewImage = () => {
     const handlePreview = async () => {
         try {
             setLoading(true);
-            // 保存报价单数据
-            const formData = form.getFieldsValue(true);
-            saveQuote(formData).then();
-
             // 生成预览图
             const url = await generatePreview();
             if (url) {
@@ -292,6 +316,20 @@ const PreviewImage = () => {
             message.error("生成预览图失败");
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleGenerate = async () => {
+        try {
+            if (saveLoading) return;
+            setSaveLoading(true);
+            // 保存报价单数据
+            const formData = form.getFieldsValue(true);
+            saveQuote(formData).then();
+        } catch (error) {
+            console.error("Save failed:", error);
+        } finally {
+            setSaveLoading(false);
         }
     };
 
@@ -352,6 +390,35 @@ const PreviewImage = () => {
     const handleModalClose = () => {
         setIsModalOpen(false);
         setPreviewUrl("");
+        handleGenerate();
+    };
+
+    const handleCopy = async () => {
+        try {
+            if (!canvasRef.current) {
+                message.error("图片未生成");
+                return;
+            }
+
+            // 将 canvas 转换为 blob
+            const blob = await new Promise<Blob>((resolve) => {
+                canvasRef.current?.toBlob((blob) => {
+                    if (blob) resolve(blob);
+                }, "image/png");
+            });
+
+            // 创建 ClipboardItem
+            const clipboardItem = new ClipboardItem({
+                "image/png": blob,
+            });
+
+            // 写入剪贴板
+            await navigator.clipboard.write([clipboardItem]);
+            message.success("复制成功");
+        } catch (error) {
+            console.error("Copy failed:", error);
+            message.error("复制失败");
+        }
     };
 
     return (
@@ -372,6 +439,9 @@ const PreviewImage = () => {
                 open={isModalOpen}
                 onCancel={handleModalClose}
                 footer={[
+                    <Button key="copy" type="primary" onClick={handleCopy}>
+                        复制到剪贴板
+                    </Button>,
                     <Button key="download" type="primary" onClick={handleDownload}>
                         下载
                     </Button>,
