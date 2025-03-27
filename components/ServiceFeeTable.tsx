@@ -1,6 +1,7 @@
 import { Table, Form, Input, Space, Select } from "antd";
 import { IFormData } from "@/types/formData";
 import { insuranceLimits } from "@/constants/insuranceLimits";
+import { http } from "@/utils/request";
 
 interface ServiceFeeTableProps {
     dataSource: Array<{
@@ -46,76 +47,53 @@ const ServiceFeeTable: React.FC<ServiceFeeTableProps> = ({ dataSource }) => {
             const currentFormData = form.getFieldsValue(true) as IFormData;
             const vehicle = currentFormData.vehicle || {};
 
-            let response;
+            let data;
 
             switch (serviceType) {
                 case "damage":
-                    response = await fetch("/api/teable/damage", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                            nature: vehicle.nature,
-                            type: vehicle.type,
-                        }),
+                    data = await http.post("/api/teable/damage", {
+                        nature: vehicle.nature,
+                        type: vehicle.type,
                     });
                     break;
 
                 case "third_party":
-                    response = await fetch("/api/teable/third-party", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                            nature: vehicle.nature,
-                            type: vehicle.type,
-                            amount: Number(value),
-                        }),
+                    data = await http.post("/api/teable/third-party", {
+                        nature: vehicle.nature,
+                        type: vehicle.type,
+                        amount: Number(value),
                     });
                     break;
 
                 case "theft":
-                    response = await fetch("/api/teable/driver", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                            category: "司机统筹",
-                            nature: vehicle.nature,
-                            type: vehicle.type,
-                            amount: Number(value),
-                        }),
+                    data = await http.post("/api/teable/driver", {
+                        category: "司机统筹",
+                        nature: vehicle.nature,
+                        type: vehicle.type,
+                        amount: Number(value),
                     });
                     break;
 
                 case "driver":
-                    response = await fetch("/api/teable/driver", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                            category: "乘客统筹",
-                            nature: vehicle.nature,
-                            type: vehicle.type,
-                            amount: Number(value),
-                        }),
+                    data = await http.post("/api/teable/driver", {
+                        category: "乘客统筹",
+                        nature: vehicle.nature,
+                        type: vehicle.type,
+                        amount: Number(value),
                     });
                     break;
 
                 case "medical":
-                    response = await fetch("/api/teable/medical", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                            amount: Number(value),
-                        }),
+                    data = await http.post("/api/teable/medical", {
+                        amount: Number(value),
                     });
                     break;
             }
 
-            if (response) {
-                const data = await response.json();
-                if (data.success && data.data?.[0]) {
-                    const fee = data.data[0].fee;
-                    form.setFieldValue(["services", serviceType, "fee"], fee);
-                    calculateServiceFees();
-                }
+            if (data?.success && data.data?.[0]) {
+                const fee = data.data[0].fee;
+                form.setFieldValue(["services", serviceType, "fee"], fee);
+                calculateServiceFees();
             }
         } catch (error) {
             console.error("查询服务数据失败:", error);

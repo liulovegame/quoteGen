@@ -1,7 +1,8 @@
 import { Button, Image, message, Space, Modal, Form } from "antd";
 import html2canvas from "html2canvas-pro";
 import { useRef, useState, useEffect } from "react";
-import { STORAGE_KEY, STORAGE_KEY_OCR } from "./LeftUploadSection";
+import { STORAGE_KEY, STORAGE_KEY_IMG_URL, STORAGE_KEY_OCR } from "./LeftUploadSection";
+import { http } from "@/utils/request";
 
 const PreviewImage = () => {
     const form = Form.useFormInstance();
@@ -19,6 +20,7 @@ const PreviewImage = () => {
         let email = "";
         const customer_info = localStorage.getItem(STORAGE_KEY) || "";
         const ocr_info = localStorage.getItem(STORAGE_KEY_OCR) || "";
+        const image_url = localStorage.getItem(STORAGE_KEY_IMG_URL) || "";
         if (userStr) {
             const user = JSON.parse(userStr);
             email = user.email || "";
@@ -96,6 +98,7 @@ const PreviewImage = () => {
             email,
             ocr_info,
             customer_info,
+            image_url
         };
 
         return {
@@ -126,21 +129,11 @@ const PreviewImage = () => {
             const transformedData = transformFormData(formData);
 
             const saveOperation = async () => {
-                const response = await fetch("/api/supabase/quotes", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                        action,
-                        data: transformedData,
-                        quote_number: quoteNumber,
-                    }),
+                const result = await http.post("/api/supabase/quotes", {
+                    action,
+                    data: transformedData,
+                    quote_number: quoteNumber,
                 });
-                const result = await response.json();
-                if (!response.ok) {
-                    throw new Error(result.message || "保存失败");
-                }
                 return result;
             };
 

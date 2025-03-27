@@ -1,9 +1,10 @@
 import { Button, Upload, Input, Form, App } from "antd";
 import { CloudUploadOutlined } from "@ant-design/icons";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import type { IFormData } from "@/types/formData";
 import type { RcFile } from "antd/es/upload";
 import { generateQuoteNumber } from "@/utils/quote";
+import { http } from "@/utils/request";
 
 const { TextArea } = Input;
 
@@ -18,12 +19,14 @@ const validateExtractedData = (data: any): data is IFormData => {
 
 export const STORAGE_KEY = "customer_info_cache";
 export const STORAGE_KEY_OCR = "ocr_info_cache";
+export const STORAGE_KEY_IMG_URL = "img_url_cache";
 
 export default function LeftUploadSection({ onDataExtracted }: Props) {
     const [form] = Form.useForm();
     const [loading, setLoading] = useState(false);
     const { message } = App.useApp();
     const [fileList, setFileList] = useState<RcFile[]>([]);
+    const imgUrl = useRef<string[]>([]);
 
     // 处理粘贴事件
     const handlePaste = async (e: React.ClipboardEvent) => {
@@ -71,25 +74,14 @@ export default function LeftUploadSection({ onDataExtracted }: Props) {
 
         formData.append("path", path);
         formData.append("file", file);
+        imgUrl.current.push(path);
 
         try {
-            const response = await fetch("/api/supabase/storage", {
-                method: "POST",
-                body: formData,
-                credentials: "include",
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || `Failed to upload ${file.name}`);
-            }
-
-            const data = await response.json();
+            const data = await http.post("/api/supabase/storage", formData);
             console.log(`Successfully uploaded ${file.name}:`, data);
             return data;
         } catch (error) {
             console.error(`Error uploading ${file.name}:`, error);
-            // message.error(`上传文件 ${file.name} 失败: ${error instanceof Error ? error.message : "未知错误"}`);
             throw error;
         }
     };
@@ -130,16 +122,8 @@ export default function LeftUploadSection({ onDataExtracted }: Props) {
                             const formData = new FormData();
                             formData.append("file", file);
 
-                            const response = await fetch("/api/ocr/text", {
-                                method: "POST",
-                                body: formData,
-                            });
+                            const result = await http.post("/api/ocr/text", formData);
 
-                            if (!response.ok) {
-                                throw new Error(`OCR 识别失败: ${file.name}`);
-                            }
-
-                            const result = await response.json();
                             if (!result.success) {
                                 throw new Error(`OCR 识别失败: ${file.name}`);
                             }
@@ -150,7 +134,6 @@ export default function LeftUploadSection({ onDataExtracted }: Props) {
                                 console.log(`文件 ${file.name} OCR 识别成功并上传`);
                             } catch (uploadError) {
                                 console.error(`文件 ${file.name} 上传失败:`, uploadError);
-                                // message.error(`文件 ${file.name} 上传失败`);
                             }
 
                             return result.data.content || "";
@@ -165,11 +148,11 @@ export default function LeftUploadSection({ onDataExtracted }: Props) {
                 // 合并所有 OCR 结果
                 const combinedText = ocrResults.filter((text) => text).join("\n");
                 localStorage.setItem(STORAGE_KEY_OCR, combinedText);
+                localStorage.setItem(STORAGE_KEY_IMG_URL, imgUrl.current.join(","));
+                imgUrl.current = [];
 
                 // 合并手动输入和 OCR 结果
                 finalText = [finalText, combinedText].filter((text) => text).join("\n");
-                // 上传文件到 Supabase
-                // handleUpload(fileList, quote_number).then().catch();
             }
 
             if (!finalText) {
@@ -177,19 +160,7 @@ export default function LeftUploadSection({ onDataExtracted }: Props) {
             }
 
             // 调用数据提取接口
-            const extractResponse = await fetch("/api/extract", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ text: finalText }),
-            });
-
-            if (!extractResponse.ok) {
-                throw new Error("提取数据失败，请重试");
-            }
-
-            const data = await extractResponse.json();
+            const data = await http.post("/api/extract", { text: finalText });
 
             // 验证返回的数据结构
             if (!validateExtractedData(data)) {
@@ -202,10 +173,6 @@ export default function LeftUploadSection({ onDataExtracted }: Props) {
                 quote_number,
             });
             message.success("数据提取成功");
-
-            // 清空当前文本框和文件列表
-            // form.resetFields();
-            // setFileList([]);
         } catch (error) {
             console.error("Error extracting data:", error);
             message.error(error instanceof Error ? error.message : "提取数据失败，请重试");

@@ -13,6 +13,7 @@ import dayjs from "dayjs";
 import ServiceFeeTable from "@/components/ServiceFeeTable";
 import SummaryTable from "@/components/SummaryTable";
 import QuoteHeader from "@/components/QuoteHeader";
+import { http } from "@/utils/request";
 // import CompulsoryTable from "@/components/CompulsoryTable";
 const { Header, Content } = Layout;
 
@@ -99,19 +100,11 @@ export default function Home() {
         // 如果有 VIN 号，调用 VIN 接口获取车辆信息
         if (data.vinNumber) {
             try {
-                const response = await fetch("/api/ocr/vin", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({ vin: data.vinNumber, search: vin }),
+                const result = await http.post("/api/ocr/vin", {
+                    vin: data.vinNumber,
+                    search: vin,
                 });
 
-                if (!response.ok) {
-                    throw new Error("VIN API request failed");
-                }
-
-                const result = await response.json();
                 if (result.success && result.data) {
                     const vinData = result.data;
 

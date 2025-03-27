@@ -1,7 +1,9 @@
 import { Form, InputNumber, Select, DatePicker } from "antd";
 import { vehicleTypes } from "@/constants/vehicleTypes";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { IFormData } from "@/types/formData";
+import { http } from "@/utils/request";
+import { useDebounceFn } from "ahooks";
 
 // 计算车损服务的限额和费用
 const calculateVehicleLoss = (
@@ -30,9 +32,66 @@ const calculatePassengerService = (amount: number = 0, passengerCapacity: number
     return { limit, fee };
 };
 
+// 计算总费用
+const calculateTotalFees = (form: any, services: Record<string, { fee: number | string }>) => {
+    const insurance = form.getFieldValue("insurance");
+    
+    // 计算标准服务费合计（只计算被选中的服务）
+    const totalStandardFee = Object.entries(services)
+        .reduce((total: number, [key, service]) => {
+            // 检查服务是否被选中
+            if (insurance[key]) {
+                return total + Number(service.fee || 0);
+            }
+            return total;
+        }, 0)
+        .toFixed(2);
+
+    // 计算实收服务费
+    const discount = form.getFieldValue("discount") || 0.5;
+    const actualFee = (Number(totalStandardFee) * discount).toFixed(2);
+
+    return {
+        totalStandardFee,
+        actualFee,
+    };
+};
+
 const VehicleInfo: React.FC<{ handleLoading: (loading: boolean) => void }> = ({ handleLoading }) => {
     const form = Form.useFormInstance();
+    const natureValue = Form.useWatch(["vehicle", "nature"], form);
     const [typeOptions, setTypeOptions] = useState<{ label: string; value: string }[]>([]);
+
+    // 处理新车指导价变化
+    const { run: handleGuidePriceChange } = useDebounceFn(
+        (value: number | null) => {
+            const currentServices = form.getFieldValue("services") || {};
+            const damageFee = form.getFieldValue("damageFee") || 0;
+            const depreciationRate = form.getFieldValue(["vehicle", "depreciationRate"]) || 0;
+            const usageMonths = form.getFieldValue(["vehicle", "usageMonths"]) || 0;
+
+            // 重新计算车损服务
+            const vehicleLoss = calculateVehicleLoss(value || 0, depreciationRate, usageMonths, damageFee);
+
+            // 更新服务数据
+            const updatedServices = {
+                ...currentServices,
+                damage: {
+                    limit: vehicleLoss.limit,
+                    fee: vehicleLoss.fee,
+                },
+            };
+            form.setFieldValue("services", updatedServices);
+
+            // 计算并更新总费用
+            const { totalStandardFee, actualFee } = calculateTotalFees(form, updatedServices);
+            form.setFieldsValue({
+                totalStandardFee,
+                actualFee,
+            });
+        },
+        { wait: 500 }
+    ); // 500ms 的防抖延迟
 
     // 查询服务数据
     const queryServiceData = async (nature: string, type: string) => {
@@ -42,74 +101,39 @@ const VehicleInfo: React.FC<{ handleLoading: (loading: boolean) => void }> = ({ 
             const vehicle = currentFormData.vehicle || {};
 
             // 查询车损服务
-            const damageResponse = await fetch("/api/teable/damage", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    nature,
-                    type,
-                }),
+            const damageData = await http.post("/api/teable/damage", {
+                nature,
+                type,
             });
-            const damageData = await damageResponse.json();
 
             // 查询第三者责任服务
-            const thirdPartyResponse = await fetch("/api/teable/third-party", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    nature,
-                    type,
-                    amount: currentFormData.thirdPartyLiabilityAmount,
-                }),
+            const thirdPartyData = await http.post("/api/teable/third-party", {
+                nature,
+                type,
+                amount: currentFormData.thirdPartyLiabilityAmount,
             });
-            const thirdPartyData = await thirdPartyResponse.json();
 
             // 查询司机统筹服务
-            const driverResponse = await fetch("/api/teable/driver", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    category: "司机统筹",
-                    nature,
-                    type,
-                    amount: currentFormData.driverLiabilityAmount,
-                }),
+            const driverData = await http.post("/api/teable/driver", {
+                category: "司机统筹",
+                nature,
+                type,
+                amount: currentFormData.driverLiabilityAmount,
             });
-            const driverData = await driverResponse.json();
 
             // 查询乘客统筹服务
-            const passengerResponse = await fetch("/api/teable/driver", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    category: "乘客统筹",
-                    nature,
-                    type,
-                    // @TODO 乘客统筹服务限额 取驾驶员的字段
-                    amount: currentFormData.driverLiabilityAmount,
-                }),
+            const passengerData = await http.post("/api/teable/driver", {
+                category: "乘客统筹",
+                nature,
+                type,
+                amount: currentFormData.driverLiabilityAmount,
             });
-            const passengerData = await passengerResponse.json();
 
             // 查询医保外用药责任服务
-            const medicalResponse = await fetch("/api/teable/medical", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    amount: currentFormData.nonMedicalInsuranceDrugAmount,
-                }),
+            const medicalAmount = currentFormData.nonMedicalInsuranceDrugAmount || 0;
+            const medicalData = await http.post("/api/teable/medical", {
+                amount: medicalAmount,
             });
-            const medicalData = await medicalResponse.json();
 
             // 更新表单数据
             const currentServices = form.getFieldValue("services") || {};
@@ -167,18 +191,9 @@ const VehicleInfo: React.FC<{ handleLoading: (loading: boolean) => void }> = ({ 
 
             form.setFieldValue("services", services);
 
-            // 计算标准服务费合计
-            const totalStandardFee = Object.values(services)
-                .reduce((total: number, service) => {
-                    return total + Number(service.fee || 0);
-                }, 0)
-                .toFixed(2);
-
-            // 计算实收服务费
-            const discount = 0.5;
-            const actualFee = (Number(totalStandardFee) * discount).toFixed(2);
-
-            // 更新标准服务费合计和实收服务费
+            // 计算并更新总费用
+            const { totalStandardFee, actualFee } = calculateTotalFees(form, services);
+            const discount = form.getFieldValue("discount") || 0.5;
             form.setFieldsValue({
                 totalStandardFee,
                 actualFee,
@@ -194,6 +209,7 @@ const VehicleInfo: React.FC<{ handleLoading: (loading: boolean) => void }> = ({ 
 
     // 处理车辆性质变化
     const handleNatureChange = (value: string) => {
+        console.log('handleNatureChange',value);
         // 根据选择的车辆性质更新车辆种类选项
         const selectedType = vehicleTypes.find((item) => item.value === value);
         setTypeOptions(selectedType?.children || []);
@@ -227,7 +243,7 @@ const VehicleInfo: React.FC<{ handleLoading: (loading: boolean) => void }> = ({ 
                     <Select placeholder="选择车辆性质" options={vehicleTypes} onChange={handleNatureChange} />
                 </Form.Item>
 
-                {form.getFieldValue(["vehicle", "nature"]) && (
+                {natureValue && (
                     <Form.Item
                         label="车辆种类"
                         name={["vehicle", "type"]}
@@ -260,21 +276,23 @@ const VehicleInfo: React.FC<{ handleLoading: (loading: boolean) => void }> = ({ 
                     />
                 </Form.Item>
 
-                <Form.Item label="使用月数" name={["vehicle", "usageMonths"]}>
-                    <InputNumber
-                        className="!w-full"
-                        min={0}
-                        controls={false}
-                        suffix={<span className="ml-2 text-gray-500">月</span>}
-                    />
-                </Form.Item>
-
                 <Form.Item label="新车指导价" name={["vehicle", "guidePrice"]}>
                     <InputNumber
                         className="!w-full"
                         min={0}
                         controls={false}
+                        onChange={handleGuidePriceChange}
                         suffix={<span className="ml-2 text-gray-500">元</span>}
+                    />
+                </Form.Item>
+
+                <Form.Item label="使用月数" name={["vehicle", "usageMonths"]}>
+                    <InputNumber
+                        className="!w-full"
+                        min={0}
+                        controls={false}
+                        disabled={true}
+                        suffix={<span className="ml-2 text-gray-500">月</span>}
                     />
                 </Form.Item>
 
@@ -283,6 +301,7 @@ const VehicleInfo: React.FC<{ handleLoading: (loading: boolean) => void }> = ({ 
                         className="!w-full"
                         min={0}
                         controls={false}
+                        disabled={true}
                         suffix={<span className="ml-2 text-gray-500">%</span>}
                     />
                 </Form.Item>
