@@ -3,6 +3,8 @@ import type { NextApiRequest, NextApiResponse } from "next";
 const DIFY_API_KEY = process.env.DIFY_API_KEY;
 const DIFY_API_ENDPOINT = process.env.DIFY_API_ENDPOINT;
 
+export const maxDuration = 30;
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method !== "POST") {
         return res.status(405).json({ message: "Method not allowed" });

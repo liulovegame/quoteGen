@@ -6,6 +6,8 @@ import { IncomingForm, Files, Fields, File } from "formidable";
 import { promises as fs } from "fs";
 import * as Stream from "@alicloud/darabonba-stream";
 
+export const maxDuration = 30;
+
 // 配置 Next.js 以禁用默认的 bodyParser
 export const config = {
     api: {
