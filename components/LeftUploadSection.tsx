@@ -25,6 +25,25 @@ export default function LeftUploadSection({ onDataExtracted }: Props) {
     const { message } = App.useApp();
     const [fileList, setFileList] = useState<RcFile[]>([]);
 
+    // 处理粘贴事件
+    const handlePaste = async (e: React.ClipboardEvent) => {
+        const items = e.clipboardData.items;
+        
+        for (const item of items) {
+            if (item.type.indexOf('image') !== -1) {
+                const file = item.getAsFile();
+                if (file) {
+                    // 创建新的 RcFile 对象
+                    const rcFile = new File([file], `pasted_image_${Date.now()}.png`, { type: 'image/png' }) as RcFile;
+                    rcFile.uid = `paste_${Date.now()}`;
+                    
+                    // 添加到文件列表
+                    setFileList(prev => [...prev, rcFile]);
+                }
+            }
+        }
+    };
+
     // 从 localStorage 加载缓存的文本
     useEffect(() => {
         const cachedText = localStorage.getItem(STORAGE_KEY);
@@ -182,7 +201,7 @@ export default function LeftUploadSection({ onDataExtracted }: Props) {
     };
 
     return (
-        <div className="w-80 space-y-4 bg-white">
+        <div className="w-80 space-y-4 bg-white" onPaste={handlePaste}>
             <div className="p-4 rounded-lg">
                 <Form form={form}>
                     <h3 className="text-base font-medium mb-3">客户信息录入</h3>
