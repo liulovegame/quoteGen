@@ -28,17 +28,17 @@ export default function LeftUploadSection({ onDataExtracted }: Props) {
     // 处理粘贴事件
     const handlePaste = async (e: React.ClipboardEvent) => {
         const items = e.clipboardData.items;
-        
+
         for (const item of items) {
-            if (item.type.indexOf('image') !== -1) {
+            if (item.type.indexOf("image") !== -1) {
                 const file = item.getAsFile();
                 if (file) {
                     // 创建新的 RcFile 对象
-                    const rcFile = new File([file], `pasted_image_${Date.now()}.png`, { type: 'image/png' }) as RcFile;
+                    const rcFile = new File([file], `${file.name}`, { type: "image/png" }) as RcFile;
                     rcFile.uid = `paste_${Date.now()}`;
-                    
+
                     // 添加到文件列表
-                    setFileList(prev => [...prev, rcFile]);
+                    setFileList((prev) => [...prev, rcFile]);
                 }
             }
         }
@@ -89,7 +89,7 @@ export default function LeftUploadSection({ onDataExtracted }: Props) {
             return data;
         } catch (error) {
             console.error(`Error uploading ${file.name}:`, error);
-            message.error(`上传文件 ${file.name} 失败: ${error instanceof Error ? error.message : "未知错误"}`);
+            // message.error(`上传文件 ${file.name} 失败: ${error instanceof Error ? error.message : "未知错误"}`);
             throw error;
         }
     };
@@ -143,7 +143,7 @@ export default function LeftUploadSection({ onDataExtracted }: Props) {
                             if (!result.success) {
                                 throw new Error(`OCR 识别失败: ${file.name}`);
                             }
-                            
+
                             // OCR 识别成功后，立即上传文件
                             try {
                                 await uploadFileToSupabase(file, quote_number);
@@ -152,10 +152,11 @@ export default function LeftUploadSection({ onDataExtracted }: Props) {
                                 console.error(`文件 ${file.name} 上传失败:`, uploadError);
                                 // message.error(`文件 ${file.name} 上传失败`);
                             }
-                            
+
                             return result.data.content || "";
                         } catch (error) {
                             console.error(`Error processing file ${file.name}:`, error);
+                            message.error(`文件上传失败 ${file.name}`);
                             return "";
                         }
                     })
@@ -237,6 +238,9 @@ export default function LeftUploadSection({ onDataExtracted }: Props) {
                             return true;
                         }}
                         fileList={fileList}
+                        onPreview={(file) => {
+                            window.open(file.url || window.URL.createObjectURL(file as any));
+                        }}
                     >
                         <p className="text-gray-600">
                             <CloudUploadOutlined className="text-2xl mb-2" />
